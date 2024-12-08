@@ -1,0 +1,11 @@
+# Ignore node_modules directory
+**/node_modules
+
+# Ignore dist directory
+dist/
+
+# Ignore all .log files in any directory
+**/*.log
+
+# Ignore dotenv environment variable folder /env
+env/
