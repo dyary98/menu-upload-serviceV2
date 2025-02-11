@@ -1,23 +1,23 @@
-/**
- * Remove old files, copy back-end files.
- */
-
+// build.ts
 import fs from 'fs-extra';
 import logger from 'jet-logger';
-import childProcess from 'child_process';
+import * as esbuild from 'esbuild';
 
 /**
- * Start
+ * Start build process
  */
 (async () => {
   try {
     // Remove current build
     await remove('./dist/');
-    // Copy back-end files
-    await exec('tsc --build tsconfig.prod.json', './');
+    
+    // Build with esbuild
+    await buildWorker();
+    
+    logger.info('Build completed successfully');
   } catch (err) {
     logger.err(err);
-    throw new Error('An error occurred.');
+    process.exit(1);
   }
 })();
 
@@ -33,18 +33,34 @@ function remove(loc: string): Promise<void> {
 }
 
 /**
- * Do command line command.
+ * Build worker with esbuild
  */
-function exec(cmd: string, loc: string): Promise<void> {
-  return new Promise((res, rej) => {
-    return childProcess.exec(cmd, { cwd: loc }, (err, stdout, stderr) => {
-      if (!!stdout) {
-        logger.info(stdout);
-      }
-      if (!!stderr) {
-        logger.warn(stderr);
-      }
-      return (!!err ? rej(err) : res());
+async function buildWorker() {
+  try {
+    await esbuild.build({
+      entryPoints: ['src/index.ts'],
+      bundle: true,
+      outfile: 'dist/index.js',
+      format: 'esm',
+      platform: 'browser',
+      target: 'es2020',
+      minify: true,
+      sourcemap: true,
+      define: {
+        'process.env.NODE_ENV': '"production"'
+      },
+      // Handle node built-ins that might be used
+      external: [
+        'fs',
+        'path',
+        'crypto',
+        'stream',
+        'buffer',
+        'util'
+      ]
     });
-  });
+  } catch (error) {
+    logger.err('Build failed:', error);
+    throw error;
+  }
 }
